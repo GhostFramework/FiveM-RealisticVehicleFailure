@@ -182,14 +182,25 @@ AddEventHandler('iens:repair', function()
 			return
 		end
 		if GetVehicleEngineHealth(vehicle) < cfg.cascadingFailureThreshold + 5 then
-			if GetVehicleOilLevel(vehicle) > 0 then
+			-- Check if GetVehicleOilLevel function exists and vehicle has oil level above 0
+			local oilLevel = 1.0 -- Default to allowing repair if function doesn't exist
+			if GetVehicleOilLevel then
+				oilLevel = GetVehicleOilLevel(vehicle) or 1.0 -- Default to 1.0 if nil
+			end
+			
+			if oilLevel > 0 then
 				SetVehicleUndriveable(vehicle,false)
 				SetVehicleEngineHealth(vehicle, cfg.cascadingFailureThreshold + 5)
 				SetVehiclePetrolTankHealth(vehicle, 750.0)
 				healthEngineLast=cfg.cascadingFailureThreshold +5
 				healthPetrolTankLast=750.0
-					SetVehicleEngineOn(vehicle, true, false )
-				SetVehicleOilLevel(vehicle,(GetVehicleOilLevel(vehicle)/3)-0.5)
+				SetVehicleEngineOn(vehicle, true, false )
+				
+				-- Only modify oil level if the function exists
+				if GetVehicleOilLevel and SetVehicleOilLevel then
+					SetVehicleOilLevel(vehicle, (oilLevel/3) - 0.5)
+				end
+				
 				notification("~g~" .. repairCfg.fixMessages[fixMessagePos] .. ", now get to a mechanic!")
 				fixMessagePos = fixMessagePos + 1
 				if fixMessagePos > repairCfg.fixMessageCount then fixMessagePos = 1 end
@@ -300,11 +311,18 @@ end
 
 Citizen.CreateThread(function()
 	while true do
-		Citizen.Wait(50)
+		-- Dynamic wait time: longer wait when not in vehicle, shorter when in vehicle
 		local ped = GetPlayerPed(-1)
 		if isPedDrivingAVehicle() then
+			-- Only wait 50ms when actively driving a vehicle
+			Citizen.Wait(50)
 			vehicle = GetVehiclePedIsIn(ped, false)
-			vehicleClass = GetVehicleClass(vehicle)
+			
+			-- Cache vehicle class to avoid repeated calls
+			if vehicle ~= lastVehicle then
+				vehicleClass = GetVehicleClass(vehicle)
+			end
+			
 			healthEngineCurrent = GetVehicleEngineHealth(vehicle)
 			if healthEngineCurrent == 1000 then healthEngineLast = 1000.0 end
 			healthEngineNew = healthEngineCurrent
@@ -437,6 +455,8 @@ Citizen.CreateThread(function()
 			lastVehicle=vehicle
 			if cfg.randomTireBurstInterval ~= 0 and GetEntitySpeed(vehicle) > 10 then tireBurstLottery() end
 		else
+			-- Wait longer when not in a vehicle to reduce CPU usage
+			Citizen.Wait(500)
 			if pedInSameVehicleLast == true then
 				-- We just got out of the vehicle
 				lastVehicle = GetVehiclePedIsIn(ped, true)				
