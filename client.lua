@@ -189,7 +189,9 @@ AddEventHandler('iens:repair', function()
 				healthEngineLast=cfg.cascadingFailureThreshold +5
 				healthPetrolTankLast=750.0
 					SetVehicleEngineOn(vehicle, true, false )
-				SetVehicleOilLevel(vehicle,(GetVehicleOilLevel(vehicle)/3)-0.5)
+				local currentOilLevel = GetVehicleOilLevel(vehicle)
+				local newOilLevel = math.max(0.0, (currentOilLevel / 3.0) - 0.5)
+				SetVehicleOilLevel(vehicle, newOilLevel)
 				notification("~g~" .. repairCfg.fixMessages[fixMessagePos] .. ", now get to a mechanic!")
 				fixMessagePos = fixMessagePos + 1
 				if fixMessagePos > repairCfg.fixMessageCount then fixMessagePos = 1 end
@@ -439,12 +441,15 @@ Citizen.CreateThread(function()
 		else
 			if pedInSameVehicleLast == true then
 				-- We just got out of the vehicle
-				lastVehicle = GetVehiclePedIsIn(ped, true)				
-				if cfg.deformationMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fDeformationDamageMult', fDeformationDamageMult) end -- Restore deformation multiplier
-				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fBrakeForce', fBrakeForce)  -- Restore Brake Force multiplier
-				if cfg.weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fWeaponDamageMult', cfg.weaponsDamageMultiplier) end	-- Since we are out of the vehicle, we should no longer compensate for bodyDamageFactor
-				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fCollisionDamageMult', fCollisionDamageMult) -- Restore the original CollisionDamageMultiplier
-				SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fEngineDamageMult', fEngineDamageMult) -- Restore the original EngineDamageMultiplier
+				lastVehicle = GetVehiclePedIsIn(ped, true)
+				-- Check if the vehicle still exists and is valid before trying to restore handling
+				if lastVehicle ~= 0 and DoesEntityExist(lastVehicle) then
+					if cfg.deformationMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fDeformationDamageMult', fDeformationDamageMult) end -- Restore deformation multiplier
+					SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fBrakeForce', fBrakeForce)  -- Restore Brake Force multiplier
+					if cfg.weaponsDamageMultiplier ~= -1 then SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fWeaponDamageMult', cfg.weaponsDamageMultiplier) end	-- Since we are out of the vehicle, we should no longer compensate for bodyDamageFactor
+					SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fCollisionDamageMult', fCollisionDamageMult) -- Restore the original CollisionDamageMultiplier
+					SetVehicleHandlingFloat(lastVehicle, 'CHandlingData', 'fEngineDamageMult', fEngineDamageMult) -- Restore the original EngineDamageMultiplier
+				end
 			end
 			pedInSameVehicleLast = false
 		end
