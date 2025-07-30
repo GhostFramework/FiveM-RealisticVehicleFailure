@@ -193,7 +193,7 @@ repairCfg = {
 		"You used ramen to repair the broken engine block, and it started right up",
 
 	},
-	fixMessageCount = 18,
+	fixMessageCount = 11,
 
 	noFixMessages = {
 		"You checked the oil plug. It's still there",
